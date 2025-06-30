@@ -7,6 +7,7 @@
 [![ESP32](https://img.shields.io/badge/ESP32-E7352C?style=flat&logo=espressif&logoColor=white)](https://www.espressif.com/en/products/socs/esp32)
 
 > 🌟 **Simulasi interaktif yang mendemonstrasikan sinkronisasi real-time antara web interface dan hardware ESP32**
+![Screenshot](./Gambar1.png)
 
 ## 🎯 Overview
 
