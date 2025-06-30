@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Real-time Toggle Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .panel-title {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .esp-board {
+            background: #2d3748;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .esp-board::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, #4a5568, #2d3748);
+            z-index: -1;
+        }
+        
+        .esp-title {
+            color: #00ff88;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .relay-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .relay-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .relay-card.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+        
+        .relay-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .relay-card.active .relay-icon {
+            color: #00ff88;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .relay-name {
+            color: white;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .web-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .toggle-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .switch-container {
+            margin: 15px 0;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+            background-color: #ccc;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .switch.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .switch.active .slider {
+            transform: translateX(30px);
+        }
+        
+        .device-name {
+            color: #4a5568;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            margin-left: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .status-indicator.active {
+            background: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        
+        .sync-animation {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .sync-arrow {
+            font-size: 2rem;
+            color: #fff;
+            animation: bounce 2s infinite;
+        }
+        
+        .activity-log {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .timestamp {
+            color: #64748b;
+        }
+        
+        .auto-demo-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px auto;
+            display: block;
+        }
+        
+        .auto-demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .realtime-badge {
+            background: linear-gradient(135deg, #00ff88, #00d4aa);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .toggle-grid, .relay-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 ESP32 Real-time Toggle Demo</h1>
+            <div class="realtime-badge">⚡ REAL-TIME SYNC ACTIVE</div>
+            <p>Simulasi bagaimana toggle web tersinkronisasi dengan relay ESP32 tanpa refresh halaman!</p>
+        </div>
+        
+        <div class="demo-grid">
+            <!-- ESP32 Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    <i class="fas fa-microchip"></i>
+                    ESP32 Hardware
+                </div>
+                <div class="esp-board">
+                    <div class="esp-title">NodeMCU ESP32</div>
+                    <div class="relay-grid">
+                        <div class="relay-card" id="esp-fan">
+                            <div class="relay-icon">
+                                <i class="fas fa-fan"></i>
+                            </div>
+                            <div class="relay-name">Fan Relay</div>
+                            <div class="status-indicator" id="esp-fan-status"></div>
+                        </div>
+                        <div class="relay-card" id="esp-exhaust">
+                            <div class="relay-icon">
+                                <i class="fas fa-wind"></i>
+                            </div>
+                            <div class="relay-name">Exhaust Relay</div>
+                            <div class="status-indicator" id="esp-exhaust-status"></div>
+                        </div>
+                        <div class="relay-card" id="esp-sprayer">
+                            <div class="relay-icon">
+                                <i class="fas fa-spray-can"></i>
+                            </div>
+                            <div class="relay-name">Sprayer Relay</div>
+                            <div class="status-indicator" id="esp-sprayer-status"></div>
+                        </div>
+                        <div class="relay-card" id="esp-led">
+                            <div class="relay-icon">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <div class="relay-name">LED Relay</div>
+                            <div class="status-indicator" id="esp-led-status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Web Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    <i class="fas fa-globe"></i>
+                    Web Interface
+                </div>
+                <div class="web-panel">
+                    <div class="toggle-grid">
+                        <div class="toggle-card">
+                            <i class="fas fa-fan" style="font-size: 2rem; color: #3b82f6;"></i>
+                            <div class="switch-container">
+                                <div class="switch" id="web-fan" onclick="toggleDevice('fan')">
+                                    <div class="slider"></div>
+                                </div>
+                            </div>
+                            <div class="device-name">Fan</div>
+                        </div>
+                        <div class="toggle-card">
+                            <i class="fas fa-wind" style="font-size: 2rem; color: #10b981;"></i>
+                            <div class="switch-container">
+                                <div class="switch" id="web-exhaust" onclick="toggleDevice('exhaust')">
+                                    <div class="slider"></div>
+                                </div>
+                            </div>
+                            <div class="device-name">Exhaust Fan</div>
+                        </div>
+                        <div class="toggle-card">
+                            <i class="fas fa-spray-can" style="font-size: 2rem; color: #f59e0b;"></i>
+                            <div class="switch-container">
+                                <div class="switch" id="web-sprayer" onclick="toggleDevice('sprayer')">
+                                    <div class="slider"></div>
+                                </div>
+                            </div>
+                            <div class="device-name">Sprayer</div>
+                        </div>
+                        <div class="toggle-card">
+                            <i class="fas fa-lightbulb" style="font-size: 2rem; color: #8b5cf6;"></i>
+                            <div class="switch-container">
+                                <div class="switch" id="web-led" onclick="toggleDevice('led')">
+                                    <div class="slider"></div>
+                                </div>
+                            </div>
+                            <div class="device-name">Grow LED</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sync-animation">
+            <div class="sync-arrow">⇄</div>
+            <p style="color: white; margin-top: 10px;">Real-time Bidirectional Sync</p>
+        </div>
+        
+        <button class="auto-demo-btn" onclick="startAutoDemo()">
+            🤖 Start Auto Demo
+        </button>
+        
+        <div class="activity-log" id="activity-log">
+            <div class="log-entry">
+                <span class="timestamp">[System]</span> ESP32 Real-time Demo Ready
+            </div>
+            <div class="log-entry">
+                <span class="timestamp">[Info]</span> Polling every 5 seconds (simulated)
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Simulasi state database
+        let deviceStates = {
+            fan: false,
+            exhaust: false,
+            sprayer: false,
+            led: false
+        };
+        
+        let autoDemo = false;
+        let logCounter = 0;
+        
+        // Update UI berdasarkan state
+        function updateUI() {
+            Object.keys(deviceStates).forEach(device => {
+                const isActive = deviceStates[device];
+                
+                // Update Web Toggle
+                const webToggle = document.getElementById(`web-${device}`);
+                if (isActive) {
+                    webToggle.classList.add('active');
+                } else {
+                    webToggle.classList.remove('active');
+                }
+                
+                // Update ESP Relay
+                const espRelay = document.getElementById(`esp-${device}`);
+                const espStatus = document.getElementById(`esp-${device}-status`);
+                if (isActive) {
+                    espRelay.classList.add('active');
+                    espStatus.classList.add('active');
+                } else {
+                    espRelay.classList.remove('active');
+                    espStatus.classList.remove('active');
+                }
+            });
+        }
+        
+        // Toggle device dari web interface
+        function toggleDevice(device) {
+            const newState = !deviceStates[device];
+            deviceStates[device] = newState;
+            
+            // Simulasi pengiriman data ke server
+            addLog(`[Web → DB] Toggle ${device}: ${newState ? 'ON' : 'OFF'}`);
+            
+            // Simulasi ESP membaca perubahan dari database
+            setTimeout(() => {
+                addLog(`[ESP ← DB] Relay ${device} ${newState ? 'activated' : 'deactivated'}`);
+                updateUI();
+            }, 200);
+        }
+        
+        // Simulasi ESP mengubah relay secara otomatis
+        function espAutoToggle(device) {
+            const newState = !deviceStates[device];
+            deviceStates[device] = newState;
+            
+            addLog(`[ESP] Auto-control: ${device} ${newState ? 'ON' : 'OFF'} (sensor trigger)`);
+            addLog(`[DB] Database updated: ${device} = ${newState ? '1' : '0'}`);
+            
+            // Simulasi web mendeteksi perubahan (polling setiap 5 detik)
+            setTimeout(() => {
+                addLog(`[Web] Auto-refresh detected change: ${device}`);
+                updateUI();
+            }, 500);
+        }
+        
+        // Add log entry
+        function addLog(message) {
+            const logContainer = document.getElementById('activity-log');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Remove old logs (keep last 20)
+            const logs = logContainer.querySelectorAll('.log-entry');
+            if (logs.length > 20) {
+                logs[0].remove();
+            }
+        }
+        
+        // Auto demo mode
+        function startAutoDemo() {
+            autoDemo = !autoDemo;
+            const btn = document.querySelector('.auto-demo-btn');
+            
+            if (autoDemo) {
+                btn.textContent = '⏹️ Stop Auto Demo';
+                btn.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+                addLog('[Demo] Auto demo started - simulating real IoT environment');
+                runAutoDemo();
+            } else {
+                btn.textContent = '🤖 Start Auto Demo';
+                btn.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a24)';
+                addLog('[Demo] Auto demo stopped');
+            }
+        }
+        
+        function runAutoDemo() {
+            if (!autoDemo) return;
+            
+            const devices = Object.keys(deviceStates);
+            const randomDevice = devices[Math.floor(Math.random() * devices.length)];
+            
+            // 70% chance ESP auto-control, 30% chance manual toggle
+            if (Math.random() < 0.7) {
+                espAutoToggle(randomDevice);
+            } else {
+                toggleDevice(randomDevice);
+            }
+            
+            // Random interval between 2-8 seconds
+            const nextInterval = 2000 + Math.random() * 6000;
+            setTimeout(runAutoDemo, nextInterval);
+        }
+        
+        // Simulasi polling real-time (seperti di kode asli)
+        function simulatePolling() {
+            addLog('[System] Polling database for changes...');
+            // Dalam kode asli, ini adalah fetch ke load_switch2.php
+        }
+        
+        // Initialize
+        updateUI();
+        
+        // Simulasi polling setiap 5 detik (seperti di kode asli)
+        setInterval(simulatePolling, 5000);
+        
+        // Easter egg: Random ESP sensor triggers
+        setInterval(() => {
+            if (!autoDemo && Math.random() < 0.1) { // 10% chance
+                const devices = ['fan', 'exhaust'];
+                const device = devices[Math.floor(Math.random() * devices.length)];
+                addLog(`[Sensor] Temperature/Humidity trigger detected`);
+                espAutoToggle(device);
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
